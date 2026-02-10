@@ -1,6 +1,6 @@
 {
   "name": "but-flow",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "GitButler CLI workflow for Claude Code. Virtual branches, stacked branches, parallel development, task scheduling (XS-XL), and tmux integration. Replaces git with but commands.",
   "author": {
     "name": "chronista-club",
