@@ -399,24 +399,24 @@ but show <commit> -j
 ### Plugin としてインストール（推奨）
 
 ```bash
-claude /plugin install https://github.com/mako/gitbutler-workflow-plugin
+claude /plugin install https://github.com/chronista-club/claude-plugin-but-flow
 ```
 
 これにより以下が自動的に有効化される：
 - **Skill**: gitbutler-workflow（本ファイル）— タスクに応じて自動ロード
 - **Hooks**: gitコマンドブロック + セッション開始時ブランチ状態注入
-- **Commands**: `/gitbutler-workflow:status`, `/gitbutler-workflow:plan`, `/gitbutler-workflow:parallel`, `/gitbutler-workflow:batch`, `/gitbutler-workflow:cleanup`
+- **Commands**: `/but-flow:status`, `/but-flow:plan`, `/but-flow:parallel`, `/but-flow:batch`, `/but-flow:cleanup`
 - **Agents**: branch-planner（タスク→ブランチ設計）, conflict-checker（コンフリクト分析）
 
 ### コマンド一覧
 
 | コマンド | 用途 |
 |---|---|
-| `/gitbutler-workflow:status` | ワークスペース状態の確認 |
-| `/gitbutler-workflow:plan` | L/XLタスクの分解計画 |
-| `/gitbutler-workflow:parallel` | 並列セッションの設計・バリデーション |
-| `/gitbutler-workflow:batch` | XS/Sタスクのバッチ処理 |
-| `/gitbutler-workflow:cleanup` | マージ済みブランチ整理・ヘルスチェック |
+| `/but-flow:status` | ワークスペース状態の確認 |
+| `/but-flow:plan` | L/XLタスクの分解計画 |
+| `/but-flow:parallel` | 並列セッションの設計・バリデーション |
+| `/but-flow:batch` | XS/Sタスクのバッチ処理 |
+| `/but-flow:cleanup` | マージ済みブランチ整理・ヘルスチェック |
 
 ## 追加リファレンス
 
