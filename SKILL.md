@@ -225,6 +225,52 @@ origin/main (base)
     └── feature-api        （data-modelに依存）
 ```
 
+## tmux統合
+
+ccはtmuxを公式サポートしており、GitButlerとの三位一体でソロ並列開発の基盤になる。
+
+### ccのtmuxサポート
+
+- **Agent Teams（split-pane）** — ccのteammate機能はtmuxまたはiTerm2が必要。`teammateMode: "tmux"`で各teammateが独立ペインになる
+- **別ペイン参照** — ccに「tmux 2.0を見て」と言えば、2番ウィンドウの0番ペインの内容を読める。サーバーログやテスト出力をリアルタイム参照可能
+- **セッション永続化** — detachしてもccは走り続ける。SSH切断やラップトップ閉じても作業続行
+- **auto検出** — ccはtmux内で動いているか自動判定し、split-pane表示を切り替える
+
+### teammate設定
+
+```json
+// .claude/settings.json
+{
+  "teammateMode": "tmux"
+}
+```
+
+`"auto"`（デフォルト）にすると、tmux内ならsplit-pane、それ以外ならin-processで動作。
+
+### GitButler × cc teams × tmux
+
+最も強力な構成。cc leadがteammateを生成し、各teammateの変更をGitButlerが自動でブランチに仕分ける。
+
+```bash
+# tmuxセッション内でcc起動
+tmux new-session -s dev
+cc "以下の3タスクをteammateに振り分けて並列実行:
+  1. JWT認証の実装
+  2. /api/usersのメモリリーク修正
+  3. エラーハンドリングの統一"
+```
+
+→ ccがteammateを3つspawn → 各ペインに表示 → GitButlerが変更を3ブランチに自動振り分け
+
+### サードパーティツール
+
+| ツール | 概要 |
+|---|---|
+| [tmux-cli](https://github.com/pchalasani/claude-code-tools) | cc用tmux自動操作。send-keysのレースコンディション対策済み |
+| [claude-tmux](https://github.com/nielsgroen/claude-tmux) | Rust製TUI。複数ccセッションの一覧管理・ステータス監視 |
+
+詳細は `references/tmux-integration.md` を参照。
+
 ## ワークフロー：ソロ開発の1日
 
 典型的なソロ開発フローの例。
@@ -239,7 +285,9 @@ but branch list --review    # PR状況確認
 
 ### 作業中：Claude Code並列セッション
 
-ターミナルマルチプレクサ（tmux/Zellij）で複数ペインを開く：
+#### 方式A: 手動マルチペイン（シンプル）
+
+tmuxで複数ペインを開き、各ペインで独立したccセッションを走らせる：
 
 ```bash
 # pane 1: 新機能
@@ -252,7 +300,17 @@ cd ~/project && cc "fix: /api/users のメモリリークを修正"
 cd ~/project && cc "refactor: データベース層のエラーハンドリング統一"
 ```
 
-GitButlerが各セッションの変更を自動で別ブランチに振り分ける。
+#### 方式B: Agent Teams（自動委譲）
+
+ccのteammate機能でleadが自動的にタスクを分配：
+
+```bash
+cc "以下を並列で実装して: 1) JWT認証 2) メモリリーク修正 3) エラーハンドリング統一"
+# → cc leadが自動でteammateをspawn
+# → tmuxのsplit-paneに各teammateが表示
+```
+
+どちらの方式でも、GitButlerが変更を自動で別ブランチに振り分ける。
 
 ### 作業後：整理とPR
 
@@ -277,6 +335,45 @@ but oplog                    # 操作履歴を確認
 but restore <snapshot-id>    # 特定地点に復元
 ```
 
+## スケジューリング戦略（XS〜XL混在タスク）
+
+異なるサイズのタスクを並行度2-3で効率的に処理する方法。
+詳細は `references/scheduling.md` を参照。
+
+### タスクサイズ定義
+
+| サイズ | コミット数 | 推定時間 | ccセッション |
+|---|---|---|---|
+| XS | ~1 | 5-10分 | バッチ処理（1セッションで複数） |
+| S | 2-5 | 30分-1時間 | バッチ or 単独 |
+| M | 5-15 | 2-4時間 | 単独セッション |
+| L | 15-30 | 1日 | 単独セッション |
+| XL | 30+ | 2-5日 | stacked branchesで3-5 phaseに分解 → 各M相当 |
+
+### 核心原則: 三層パイプライン
+
+3つのccスロットを役割で分離する：
+
+```
+Slot A: 大物担当（L/XL phase）— 長時間の深い作業
+Slot B: 中物担当（M）       — 半日単位の集中作業
+Slot C: 小物バッチ（XS/S）  — 高速回転、スループット確保
+```
+
+同時に走るタスクの**変更領域が重ならない**組み合わせを選ぶ。
+大物同士の並行は最もコンフリクトリスクが高いため避ける。
+
+### 有限バッチ（50個）の場合
+
+目標：全体の完了時間（makespan）の最小化。
+XLを必ずstacked branchesで分解 → 小物を先に一掃 → 大物のphaseを直列処理。
+
+### 無限ストリームの場合
+
+目標：単位時間あたり処理量（スループット）の最大化。
+SJF（Shortest Job First）+ Aging（大物の飢餓防止）でディスパッチ。
+WIP上限5（ccセッション3 + レビュー中2）。
+
 ## 設計の原則
 
 ブランチ戦略を設計する際の判断基準：
@@ -297,6 +394,30 @@ but branch list -j | jq '.[] | select(.has_pr == true)'
 but show <commit> -j
 ```
 
+## セットアップ
+
+### Plugin としてインストール（推奨）
+
+```bash
+claude /plugin install https://github.com/mako/gitbutler-workflow-plugin
+```
+
+これにより以下が自動的に有効化される：
+- **Skill**: gitbutler-workflow（本ファイル）— タスクに応じて自動ロード
+- **Hooks**: gitコマンドブロック + セッション開始時ブランチ状態注入
+- **Commands**: `/gitbutler-workflow:status`, `/gitbutler-workflow:plan`, `/gitbutler-workflow:parallel`, `/gitbutler-workflow:batch`, `/gitbutler-workflow:cleanup`
+- **Agents**: branch-planner（タスク→ブランチ設計）, conflict-checker（コンフリクト分析）
+
+### コマンド一覧
+
+| コマンド | 用途 |
+|---|---|
+| `/gitbutler-workflow:status` | ワークスペース状態の確認 |
+| `/gitbutler-workflow:plan` | L/XLタスクの分解計画 |
+| `/gitbutler-workflow:parallel` | 並列セッションの設計・バリデーション |
+| `/gitbutler-workflow:batch` | XS/Sタスクのバッチ処理 |
+| `/gitbutler-workflow:cleanup` | マージ済みブランチ整理・ヘルスチェック |
+
 ## 追加リファレンス
 
 より詳細な情報は以下のファイルを参照：
@@ -304,3 +425,6 @@ but show <commit> -j
 - `references/commands.md` — 全コマンドの詳細オプション
 - `references/strategies.md` — ブランチ戦略パターンの詳細と判断フロー
 - `references/claude-code-integration.md` — Claude Code連携の設定詳細とトラブルシューティング
+- `references/tmux-integration.md` — tmux統合の詳細設定、Agent Teams運用、永続化パターン
+- `references/scheduling.md` — XS〜XL混在タスクのスケジューリング（cc向け指示 + 理論背景）
+- `references/known-limitations.md` — 検証済み/未検証の区別、既知の制限事項、検証TODO

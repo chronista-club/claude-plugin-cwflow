@@ -1,11 +1,11 @@
-# but-flow
+# gitbutler-workflow
 
 A Claude Code plugin for GitButler CLI workflows. Virtual branches, stacked branches, parallel development, task scheduling, and tmux integration.
 
 ## Install
 
 ```bash
-claude /plugin install https://github.com/chronista-club/but-flow
+claude /plugin install https://github.com/mako/gitbutler-workflow-plugin
 ```
 
 ## What it does
@@ -19,11 +19,11 @@ claude /plugin install https://github.com/chronista-club/but-flow
 | **Skill** | `gitbutler-workflow` | Auto-loaded when branch/PR/scheduling work is detected. 400+ lines of reference documentation. |
 | **Hook: PreToolUse** | git blocker | Intercepts `git checkout/commit/push/...` → forces `but` commands. 36 test cases. |
 | **Hook: SessionStart** | status inject | Runs `but status` at session start, injects branch state into context. |
-| **Command** | `/but-flow:status` | Workspace overview: branches, changes, PRs |
-| **Command** | `/but-flow:plan` | Decompose L/XL tasks into stacked branches |
-| **Command** | `/but-flow:parallel` | Design parallel sessions with conflict validation |
-| **Command** | `/but-flow:batch` | Batch XS/S tasks into single branch |
-| **Command** | `/but-flow:cleanup` | Clean merged branches, health check |
+| **Command** | `/gitbutler-workflow:status` | Workspace overview: branches, changes, PRs |
+| **Command** | `/gitbutler-workflow:plan` | Decompose L/XL tasks into stacked branches |
+| **Command** | `/gitbutler-workflow:parallel` | Design parallel sessions with conflict validation |
+| **Command** | `/gitbutler-workflow:batch` | Batch XS/S tasks into single branch |
+| **Command** | `/gitbutler-workflow:cleanup` | Clean merged branches, health check |
 | **Agent** | `branch-planner` | Analyzes tasks → designs optimal branch strategy |
 | **Agent** | `conflict-checker` | Detects file overlap between active branches |
 

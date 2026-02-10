@@ -1,17 +1,21 @@
 {
   "name": "but-flow",
-  "description": "GitButler CLI workflow - Virtual branches, parallel development, task scheduling",
   "version": "1.0.0",
+  "description": "GitButler CLI workflow for Claude Code. Virtual branches, stacked branches, parallel development, task scheduling (XS-XL), and tmux integration. Replaces git with but commands.",
   "author": {
-    "name": "Mako",
-    "email": "mito@chronista.club"
+    "name": "chronista-club",
+    "url": "https://github.com/chronista-club"
   },
   "repository": "https://github.com/chronista-club/claude-plugin-but-flow",
+  "license": "MIT",
   "keywords": [
     "gitbutler",
-    "branch",
-    "workflow",
+    "but",
+    "virtual-branches",
+    "stacked-branches",
     "parallel-development",
-    "stacked-branches"
+    "scheduling",
+    "tmux",
+    "workflow"
   ]
 }
