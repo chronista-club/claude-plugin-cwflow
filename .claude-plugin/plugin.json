@@ -1,7 +1,7 @@
 {
   "name": "cw-flow",
   "description": "Claude Workers (cw) parallel development workflow - clone-based workspace isolation for safe concurrent Claude Code sessions",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "author": {
     "name": "Mako",
     "email": "mito@chronista.club"
