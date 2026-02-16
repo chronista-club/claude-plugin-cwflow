@@ -1,45 +1,35 @@
 ---
-description: Clean up merged branches, check for stale virtual branches, and verify workspace health.
+description: マージ済み・不要なワーカー環境を検出して一括削除。
 ---
 
-Clean up the GitButler workspace.
+# CW Cleanup — ワーカー環境のクリーンアップ
 
-## Step 1: Identify merged branches
+## 手順
 
-```bash
-but branch list
-```
+1. `cw ls` で全ワーカー一覧を取得
 
-Check which branches have been merged upstream (PRs merged). For each merged branch:
-```bash
-but branch delete <branch-name>
-```
+2. 各ワーカーの状態を判定:
+   - **マージ済み**: 対応するPRがMerged状態（`gh pr list --head <branch> --state merged`）
+   - **Closed**: 対応するPRがClosed状態
+   - **未コミット変更あり**: `git status --short` が空でない
+   - **アクティブ**: 上記以外
 
-## Step 2: Check for stale branches
+3. 判定結果を表示:
+   ```
+   Worker          Status          Action
+   ─────────────────────────────────────────────
+   issue-42        PR Merged       削除可能
+   issue-43        PR Closed       削除可能
+   hotfix-1        未コミット変更  保留（要確認）
+   issue-44        アクティブ      保持
+   ```
 
-Identify branches with no commits in the last 7 days. List them and ask me which ones to delete.
+4. 「削除可能」なワーカーについてユーザーに確認:
+   - 全て削除 / 個別選択 / キャンセル
 
-## Step 3: Verify workspace health
+5. 確認後、`cw rm <name>` で削除を実行
 
-```bash
-but status -f
-```
+## 注意
 
-Check for:
-- Uncommitted changes that don't belong to any branch
-- Branches with unpushed commits
-- Virtual branch count (warn if >6)
-
-## Step 4: Pull latest
-
-```bash
-but pull
-```
-
-Report any conflicts that arise.
-
-## Step 5: Summary
-
-- Branches deleted: N
-- Branches remaining: N
-- Workspace health: clean / needs attention
+- 未コミット変更があるワーカーは自動削除しない（明示的な確認が必要）
+- ワーカーが0件の場合は「クリーンアップ対象はありません」と表示

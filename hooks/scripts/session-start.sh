@@ -1,26 +1,45 @@
 #!/bin/bash
-# SessionStart hook: GitButler状態をセッション開始時にコンテキスト注入
-# but CLIが使えない場合は静かに失敗する
+# SessionStart hook: Claude Workersの状態をセッション開始時にコンテキスト注入
+# cw CLIが使えない場合は静かに終了する
 
 set -euo pipefail
 
-# but コマンドの存在チェック
-if ! command -v but &>/dev/null; then
+# cw コマンドの存在チェック
+CW_CMD=""
+if command -v cw &>/dev/null; then
+  CW_CMD="cw"
+elif [ -x /opt/homebrew/bin/cw ]; then
+  CW_CMD="/opt/homebrew/bin/cw"
+elif [ -x "$HOME/.cargo/bin/cw" ]; then
+  CW_CMD="$HOME/.cargo/bin/cw"
+else
   exit 0
 fi
 
-# GitButlerが初期化されているか確認
-if ! but status &>/dev/null 2>&1; then
+# ワーカー一覧を取得
+WORKER_LIST=$($CW_CMD ls 2>/dev/null || echo "")
+
+# ワーカーが0件なら何もしない
+if [ -z "$WORKER_LIST" ]; then
   exit 0
 fi
 
-# ブランチ状態を取得
-STATUS=$(but status -f 2>/dev/null || echo "unable to get status")
-BRANCH_LIST=$(but branch list 2>/dev/null || echo "unable to list branches")
+# 現在のディレクトリがワーカー環境内かどうか判定
+CURRENT_DIR=$(pwd)
+IN_WORKER=""
+if echo "$CURRENT_DIR" | grep -q "creo-workers"; then
+  IN_WORKER="true"
+fi
 
-# additionalContext として注入
+# コンテキストを構築
+if [ -n "$IN_WORKER" ]; then
+  CONTEXT="## Claude Workers 環境\n\n現在ワーカー環境内で作業中です。\nパス: ${CURRENT_DIR}\n\n### 全ワーカー一覧\n\`\`\`\n${WORKER_LIST}\n\`\`\`\n\nワーカーの管理: cw ls / cw rm <name>"
+else
+  CONTEXT="## Claude Workers 環境\n\nアクティブなワーカーがあります。\n\n### ワーカー一覧\n\`\`\`\n${WORKER_LIST}\n\`\`\`\n\nワーカーの管理: cw ls / cw new <name> <branch> / cw rm <name>"
+fi
+
 cat <<EOF
 {
-  "additionalContext": "## GitButler Workspace State\n\nThis project uses GitButler (but CLI). Never use raw git commands for write operations.\n\n### Current Status\n\`\`\`\n${STATUS}\n\`\`\`\n\n### Active Branches\n\`\`\`\n${BRANCH_LIST}\n\`\`\`\n\nFor workflow details, read the gitbutler-workflow skill."
+  "additionalContext": "${CONTEXT}"
 }
 EOF

@@ -1,57 +1,51 @@
 ---
-description: Design and validate parallel development sessions. Checks file overlap between tasks, suggests tmux layout, and creates branches for each session slot.
+description: tmuxを使って複数ワーカーでClaude Codeセッションを並列起動。
 ---
 
-Help me set up parallel development sessions using GitButler virtual branches.
+# CW Parallel — 並列セッション起動
 
-Read the gitbutler-workflow skill (especially scheduling and tmux-integration references), then:
+## 手順
 
-## Step 1: Gather tasks
+1. 起動対象の決定:
+   - 引数でワーカー名が指定された場合 → それらを使用
+   - 指定がない場合 → `cw ls` で一覧を表示し、起動するワーカーを選択
 
-If $ARGUMENTS is empty, ask me to list the tasks I want to run in parallel.
-Otherwise, parse the task descriptions from $ARGUMENTS.
+2. tmuxセッションの構成を決定:
+   - 2ワーカー: 左右2ペイン
+   - 3ワーカー: 左 + 右上下
+   - 4ワーカー: 2x2グリッド
 
-## Step 2: Size each task
+3. tmuxセッション `cw-parallel` を作成（既存なら確認の上で再作成）:
 
-Classify each task as XS/S/M/L/XL.
+   ```bash
+   # 例: 2ワーカーの場合
+   tmux new-session -d -s cw-parallel -c "$(cw path issue-42)"
+   tmux split-window -h -t cw-parallel -c "$(cw path issue-43)"
 
-## Step 3: Validate the combination
+   # 各ペインでClaude Codeを起動
+   tmux send-keys -t cw-parallel:0.0 'claude' Enter
+   tmux send-keys -t cw-parallel:0.1 'claude' Enter
+   ```
 
-Check these rules:
-- ❌ L+L, L+XL, XL+XL in parallel → too risky, suggest serializing
-- ✅ L + M + XS/S batch → recommended pattern
-- ✅ M + M + XS/S batch → safe
-- ⚠️ Maximum 3 concurrent sessions
+4. セッションにアタッチ:
+   ```bash
+   tmux attach -t cw-parallel
+   ```
 
-## Step 4: File overlap analysis
+5. 起動完了メッセージ:
+   ```
+   並列セッションを起動しました:
+     Pane 0: issue-42 (feature/issue-42)
+     Pane 1: issue-43 (feature/issue-43)
 
-For each task pair, identify potentially overlapping files/directories.
-If overlap exists:
-- Suggest `but mark` to pre-assign file patterns to branches
-- Or recommend serializing the overlapping tasks
+   tmux attach -t cw-parallel でアクセスできます。
+   ```
 
-## Step 5: Create branches and assign slots
+## 引数
 
-```bash
-# Slot A: Large task (deep focus)
-but branch new feat/<task-a>
+- `<worker-names...>`: 起動するワーカー名（スペース区切り、省略時は対話選択）
 
-# Slot B: Medium task
-but branch new feat/<task-b>
+## 注意
 
-# Slot C: Small batch
-but branch new fix/<batch-name>
-```
-
-## Step 6: Suggest tmux layout
-
-Output the tmux commands to set up the session:
-
-```bash
-tmux new-session -s dev -n slot-a
-tmux split-window -h
-tmux split-window -v -t 0
-# Slot A: left pane (large), Slot B: top-right, Slot C: bottom-right
-```
-
-Remind me that each pane should run its own `claude` session targeting its assigned branch.
+- tmuxがインストールされていない場合はエラー
+- 各ペインは独立したClaude Codeセッション（互いに干渉しない）
