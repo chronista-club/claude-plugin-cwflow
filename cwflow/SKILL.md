@@ -25,13 +25,13 @@ description: >
 │  ← 安定。直接作業しない or リーダーのみ
 │
 ├── ccws new issue-42 feature/issue-42
-│   → ~/.cache/ccws/issue-42/    ← Agent A が作業
+│   → ~/.local/share/ccws/issue-42/    ← Agent A が作業
 │
 ├── ccws new issue-43 feature/issue-43
-│   → ~/.cache/ccws/issue-43/    ← Agent B が作業
+│   → ~/.local/share/ccws/issue-43/    ← Agent B が作業
 │
 └── ccws new hotfix-1 fix/urgent-bug
-    → ~/.cache/ccws/hotfix-1/    ← Agent C が作業
+    → ~/.local/share/ccws/hotfix-1/    ← Agent C が作業
 ```
 
 各ワーカーは:
@@ -200,7 +200,7 @@ ccws rm issue-42
 
 1. カレントディレクトリのgitリポを検出（`git rev-parse --show-toplevel`）
 2. `origin` URLを取得（`git remote get-url origin`）
-3. `~/.cache/ccws/<name>/` に shallow clone（`--depth 1`）
+3. `~/.local/share/ccws/<name>/` に shallow clone（`--depth 1`）
 4. リモートURLをGitHub URLに設定
 5. `.claude/worker-files.kdl` を読んでsymlink/copy を配置
 6. 指定ブランチを作成
@@ -216,10 +216,10 @@ ccws rm issue-42
 
 ## ストレージ
 
-ワーカー環境は `~/.cache/ccws/` に配置される。
+ワーカー環境は `~/.local/share/ccws/` に配置される。
 
 ```bash
-~/.cache/ccws/
+~/.local/share/ccws/
 ├── issue-42/     # feature/issue-42 ブランチ
 ├── issue-43/     # feature/issue-43 ブランチ
 └── hotfix-1/     # fix/urgent-bug ブランチ

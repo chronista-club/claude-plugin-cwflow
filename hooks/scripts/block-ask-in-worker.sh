@@ -5,7 +5,7 @@
 CURRENT_DIR=$(pwd)
 
 # Only block if we're in a worker environment
-if echo "$CURRENT_DIR" | grep -q "/.cache/ccws/"; then
+if echo "$CURRENT_DIR" | grep -q "/.local/share/ccws/"; then
   cat <<'EOF'
 {
   "decision": "block",
